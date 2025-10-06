@@ -231,7 +231,7 @@ Generates audio from the input text. Available parameters:
 **Optional Parameters:**
 
 - **model** (string): Set to "tts-1" or "tts-1-hd" (default: `"tts-1"`).
-- **voice** (string): One of the OpenAI-compatible voices (alloy, echo, fable, onyx, nova, shimmer) or any valid `edge-tts` voice (default: `"en-US-AvaNeural"`).
+- **voice** (string): One of the OpenAI-compatible voices (alloy, echo, fable, onyx, nova, shimmer) or any valid `edge-tts` voice (default: `"en-US-AvaNeural"`). Volume / pitch / speed can be adjusted by appending them to the voice name, e.g., `en-US-AvaNeural+10%+25Hz` or `en-US-AvaNeural-5%-10Hz` or `en-US-AvaNeural-5%-10Hz+1.2s`. The order does not matter.
 - **response_format** (string): Audio format. Options: `mp3`, `opus`, `aac`, `flac`, `wav`, `pcm` (default: `mp3`).
 - **speed** (number): Playback speed (0.25 to 4.0). Default is `1.0`.
 - **stream_format** (string): Response format. Options: `"audio"` (raw audio data, default) or `"sse"` (Server-Sent Events streaming with JSON events).

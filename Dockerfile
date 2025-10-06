@@ -4,9 +4,12 @@ ARG INSTALL_FFMPEG=false
 WORKDIR /app
 
 # Install ffmpeg conditionally
-RUN if [ "$INSTALL_FFMPEG" = "true" ]; then \
-    apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*; \
-    fi
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential python3-dev && \
+    if [ "$INSTALL_FFMPEG" = "true" ]; then \
+        apt-get install -y --no-install-recommends ffmpeg; \
+    fi && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install them
 COPY requirements.txt /app

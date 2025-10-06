@@ -4,6 +4,8 @@ import edge_tts
 import asyncio
 import tempfile
 import subprocess
+
+import re
 import os
 from pathlib import Path
 
@@ -34,6 +36,44 @@ model_data = [
         {"id": "gpt-4o-mini-tts", "name": "GPT-4o mini TTS"}
     ]
 
+def _parse_voice(voice):
+    """
+    Parses the voice string to extract voice, volume, pitch and rate.
+    The voice string can be in formats like:
+    - 'en-US-JennyNeural'
+    - 'en-US-JennyNeural+10%' (volume)
+    - 'en-US-JennyNeural-20Hz' (pitch)
+    - 'en-US-JennyNeural+1.2s' (rate/speed)
+    - 'en-US-JennyNeural+10%-20Hz-1.2s' (a combination)
+    """
+    volume = "+0%"
+    pitch = "+0Hz"
+    speed = None
+
+    # Regex to find volume (e.g., +10%, -5%)
+    volume_re = re.compile(r"([+-]\d+%)")
+    volume_match = volume_re.search(voice)
+    if volume_match:
+        volume = volume_match.group(1)
+        voice = volume_re.sub("", voice)
+
+    # Regex to find pitch (e.g., +20Hz, -10Hz)
+    pitch_re = re.compile(r"([+-]\d+Hz)")
+    pitch_match = pitch_re.search(voice)
+    if pitch_match:
+        pitch = pitch_match.group(1)
+        voice = pitch_re.sub("", voice)
+
+    # Regex to find rate (e.g., +1.2s)
+    speed_re = re.compile(r"([+]\d+(\.\d+))?s")
+    speed_match = speed_re.search(voice)
+    if speed_match:
+        speed_str = speed_match.group(1)
+        voice = speed_re.sub("", voice)
+        speed = float(speed_str)
+
+    return voice.strip(), volume, pitch, speed
+
 def is_ffmpeg_installed():
     """Check if FFmpeg is installed and accessible."""
     try:
@@ -43,6 +83,11 @@ def is_ffmpeg_installed():
         return False
 
 async def _generate_audio_stream(text, voice, speed):
+    # parse voice first
+    voice, volume, pitch, _speed = _parse_voice(voice)
+    if _speed:
+        speed = _speed
+
     """Generate streaming TTS audio using edge-tts."""
     # Determine if the voice is an OpenAI-compatible voice or a direct edge-tts voice
     edge_tts_voice = voice_mapping.get(voice, voice)  # Use mapping if in OpenAI names, otherwise use as-is
@@ -53,9 +98,9 @@ async def _generate_audio_stream(text, voice, speed):
     except Exception as e:
         print(f"Error converting speed: {e}. Defaulting to +0%.")
         speed_rate = "+0%"
-    
+
     # Create the communicator for streaming
-    communicator = edge_tts.Communicate(text=text, voice=edge_tts_voice, rate=speed_rate)
+    communicator = edge_tts.Communicate(text=text, voice=edge_tts_voice, rate=speed_rate, volume=volume, pitch=pitch)
     
     # Stream the audio data
     async for chunk in communicator.stream():
@@ -67,6 +112,11 @@ def generate_speech_stream(text, voice, speed=1.0):
     return asyncio.run(_generate_audio_stream(text, voice, speed))
 
 async def _generate_audio(text, voice, response_format, speed):
+    # parse voice first
+    voice, volume, pitch, _speed = _parse_voice(voice)
+    if _speed:
+        speed = _speed
+
     """Generate TTS audio and optionally convert to a different format."""
     # Determine if the voice is an OpenAI-compatible voice or a direct edge-tts voice
     edge_tts_voice = voice_mapping.get(voice, voice)  # Use mapping if in OpenAI names, otherwise use as-is
@@ -83,7 +133,7 @@ async def _generate_audio(text, voice, response_format, speed):
         speed_rate = "+0%"
 
     # Generate the MP3 file
-    communicator = edge_tts.Communicate(text=text, voice=edge_tts_voice, rate=speed_rate)
+    communicator = edge_tts.Communicate(text=text, voice=edge_tts_voice, rate=speed_rate, volume=volume, pitch=pitch)
     await communicator.save(temp_mp3_path)
     temp_mp3_file_obj.close() # Explicitly close our file object for the initial mp3
 
