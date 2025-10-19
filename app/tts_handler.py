@@ -100,7 +100,7 @@ async def _generate_audio_stream(text, voice, speed):
         speed_rate = "+0%"
 
     # Create the communicator for streaming
-    communicator = edge_tts.Communicate(text=text, voice=edge_tts_voice, rate=speed_rate, volume=volume, pitch=pitch)
+    communicator = edge_tts.Communicate(text=text, voice=edge_tts_voice, rate=speed_rate, volume=volume, pitch=pitch, proxy=get_proxy_from_env())
     
     # Stream the audio data
     async for chunk in communicator.stream():
@@ -133,7 +133,7 @@ async def _generate_audio(text, voice, response_format, speed):
         speed_rate = "+0%"
 
     # Generate the MP3 file
-    communicator = edge_tts.Communicate(text=text, voice=edge_tts_voice, rate=speed_rate, volume=volume, pitch=pitch)
+    communicator = edge_tts.Communicate(text=text, voice=edge_tts_voice, rate=speed_rate, volume=volume, pitch=pitch, proxy=get_proxy_from_env())
     await communicator.save(temp_mp3_path)
     temp_mp3_file_obj.close() # Explicitly close our file object for the initial mp3
 
@@ -225,6 +225,17 @@ async def _get_voices(language=None):
 
 def get_voices(language=None):
     return asyncio.run(_get_voices(language))
+
+def get_proxy_from_env():
+    """
+    Get proxy from environment variables in order of preference:
+    HTTPS_PROXY, https_proxy, HTTP_PROXY, http_proxy
+
+    Returns:
+        str or None: The proxy URL if found, otherwise None
+    """
+    return os.getenv('HTTPS_PROXY') or os.getenv('https_proxy') or os.getenv('HTTP_PROXY') or os.getenv('http_proxy') or None
+
 
 def speed_to_rate(speed: float) -> str:
     """
